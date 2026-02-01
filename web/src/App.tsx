@@ -5,6 +5,8 @@ import StaffConfigForm from './components/StaffConfigForm'
 import CostBreakdownPanel from './components/CostBreakdownPanel'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { BisquePiece, StudioSettings, StaffRole, COGSResult } from './types/pottery'
+import { calculateStaffLaborCost, calculateKilnLaborCost, calculateOverheadCost } from '../../src/pottery'
+import { roundCents } from '../../src/utils'
 import './App.css'
 
 const defaultSettings: StudioSettings = {
@@ -25,17 +27,6 @@ const defaultStaffRoles: StaffRole[] = [
   { id: '2', name: 'Manager', hourlyRate: 20, minutesPerCustomer: 5, customersSimultaneous: 3 },
 ]
 
-function calculateStaffLaborCost(hourlyRate: number, minutesPerCustomer: number, customersSimultaneous: number): number {
-  const cost = (hourlyRate * minutesPerCustomer / 60) / customersSimultaneous
-  return Math.round(cost * 100) / 100
-}
-
-function calculateKilnLaborCost(hourlyRate: number, minutesPerFiring: number, kilnWorkerCount: number, piecesPerFiring: number): number {
-  const totalLaborCost = (hourlyRate * minutesPerFiring / 60) * kilnWorkerCount
-  const costPerPiece = totalLaborCost / piecesPerFiring
-  return Math.round(costPerPiece * 100) / 100
-}
-
 function App() {
   const [catalog, setCatalog] = useLocalStorage<BisquePiece[]>('pottery-catalog', [
     { id: '1', name: '', wholesaleCost: 0 },
@@ -55,32 +46,33 @@ function App() {
 
     for (const role of staffRoles) {
       if (role.name.trim()) {
-        const cost = calculateStaffLaborCost(
-          role.hourlyRate,
-          role.minutesPerCustomer,
-          role.customersSimultaneous
-        )
+        const cost = calculateStaffLaborCost({
+          hourlyRate: role.hourlyRate,
+          minutesPerCustomer: role.minutesPerCustomer,
+          customersSimultaneous: role.customersSimultaneous,
+        })
         laborByRole[role.name] = cost
         laborTotal += cost
       }
     }
 
-    laborTotal = Math.round(laborTotal * 100) / 100
+    laborTotal = roundCents(laborTotal)
 
-    const kilnCost = calculateKilnLaborCost(
-      settings.kiln.hourlyRate,
-      settings.kiln.minutesPerFiring,
-      settings.kiln.kilnWorkerCount,
-      settings.kiln.piecesPerFiring
+    const kilnCost = calculateKilnLaborCost({
+      hourlyRate: settings.kiln.hourlyRate,
+      minutesPerFiring: settings.kiln.minutesPerFiring,
+      kilnWorkerCount: settings.kiln.kilnWorkerCount,
+      piecesPerFiring: settings.kiln.piecesPerFiring,
+    })
+
+    const overheadCost = calculateOverheadCost({
+      monthlyOverhead: settings.monthlyOverhead,
+      piecesPerMonth: settings.piecesPerMonth,
+    })
+
+    const totalCOGS = roundCents(
+      selectedPiece.wholesaleCost + settings.glazeCostPerPiece + laborTotal + kilnCost + overheadCost
     )
-
-    const overheadCost = settings.piecesPerMonth > 0
-      ? Math.round((settings.monthlyOverhead / settings.piecesPerMonth) * 100) / 100
-      : 0
-
-    const totalCOGS = Math.round(
-      (selectedPiece.wholesaleCost + settings.glazeCostPerPiece + laborTotal + kilnCost + overheadCost) * 100
-    ) / 100
 
     return {
       totalCOGS,

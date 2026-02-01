@@ -1,3 +1,5 @@
+import { roundCents } from './utils'
+
 interface StaffLaborInput {
   hourlyRate: number
   minutesPerCustomer: number
@@ -35,8 +37,11 @@ interface PieceCOGSResult {
 
 export function calculateStaffLaborCost(input: StaffLaborInput): number {
   const { hourlyRate, minutesPerCustomer, customersSimultaneous } = input
+  if (customersSimultaneous <= 0 || hourlyRate < 0 || minutesPerCustomer < 0) {
+    return 0
+  }
   const cost = (hourlyRate * minutesPerCustomer / 60) / customersSimultaneous
-  return Math.round(cost * 100) / 100
+  return roundCents(cost)
 }
 
 interface KilnLaborInput {
@@ -48,9 +53,12 @@ interface KilnLaborInput {
 
 export function calculateKilnLaborCost(input: KilnLaborInput): number {
   const { hourlyRate, minutesPerFiring, kilnWorkerCount, piecesPerFiring } = input
+  if (piecesPerFiring <= 0 || hourlyRate < 0 || kilnWorkerCount < 0 || minutesPerFiring < 0) {
+    return 0
+  }
   const totalLaborCost = (hourlyRate * minutesPerFiring / 60) * kilnWorkerCount
   const costPerPiece = totalLaborCost / piecesPerFiring
-  return Math.round(costPerPiece * 100) / 100
+  return roundCents(costPerPiece)
 }
 
 interface OverheadInput {
@@ -60,9 +68,9 @@ interface OverheadInput {
 
 export function calculateOverheadCost(input: OverheadInput): number {
   const { monthlyOverhead, piecesPerMonth } = input
-  if (piecesPerMonth === 0) return 0
+  if (piecesPerMonth <= 0 || monthlyOverhead < 0) return 0
   const costPerPiece = monthlyOverhead / piecesPerMonth
-  return Math.round(costPerPiece * 100) / 100
+  return roundCents(costPerPiece)
 }
 
 export function calculatePieceCOGS(input: PieceCOGSInput): PieceCOGSResult {
@@ -81,14 +89,14 @@ export function calculatePieceCOGS(input: PieceCOGSInput): PieceCOGSResult {
     laborTotal += cost
   }
 
-  laborTotal = Math.round(laborTotal * 100) / 100
+  laborTotal = roundCents(laborTotal)
 
   const kilnCost = calculateKilnLaborCost(kiln)
   const overheadCost = calculateOverheadCost(overhead)
 
-  const totalCOGS = Math.round(
-    (bisqueCost + glazeCostPerPiece + laborTotal + kilnCost + overheadCost) * 100
-  ) / 100
+  const totalCOGS = roundCents(
+    bisqueCost + glazeCostPerPiece + laborTotal + kilnCost + overheadCost
+  )
 
   return {
     totalCOGS,

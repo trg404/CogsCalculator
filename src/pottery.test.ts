@@ -17,6 +17,36 @@ describe('calculateStaffLaborCost', () => {
     // ($15 × 20min / 60) / 4 = $1.25
     expect(result).toBe(1.25)
   })
+
+  it('returns 0 when customersSimultaneous is 0 (avoids division by zero)', () => {
+    const result = calculateStaffLaborCost({
+      hourlyRate: 15,
+      minutesPerCustomer: 20,
+      customersSimultaneous: 0,
+    })
+
+    expect(result).toBe(0)
+  })
+
+  it('returns 0 when hourlyRate is negative', () => {
+    const result = calculateStaffLaborCost({
+      hourlyRate: -15,
+      minutesPerCustomer: 20,
+      customersSimultaneous: 4,
+    })
+
+    expect(result).toBe(0)
+  })
+
+  it('returns 0 when minutesPerCustomer is negative', () => {
+    const result = calculateStaffLaborCost({
+      hourlyRate: 15,
+      minutesPerCustomer: -20,
+      customersSimultaneous: 4,
+    })
+
+    expect(result).toBe(0)
+  })
 })
 
 describe('calculateKilnLaborCost', () => {
@@ -30,6 +60,39 @@ describe('calculateKilnLaborCost', () => {
 
     // ($17 × 30min / 60 × 2 workers) / 20 pieces = $0.85
     expect(result).toBe(0.85)
+  })
+
+  it('returns 0 when piecesPerFiring is 0 (avoids division by zero)', () => {
+    const result = calculateKilnLaborCost({
+      hourlyRate: 17,
+      minutesPerFiring: 30,
+      kilnWorkerCount: 2,
+      piecesPerFiring: 0,
+    })
+
+    expect(result).toBe(0)
+  })
+
+  it('returns 0 when hourlyRate is negative', () => {
+    const result = calculateKilnLaborCost({
+      hourlyRate: -17,
+      minutesPerFiring: 30,
+      kilnWorkerCount: 2,
+      piecesPerFiring: 20,
+    })
+
+    expect(result).toBe(0)
+  })
+
+  it('returns 0 when kilnWorkerCount is negative', () => {
+    const result = calculateKilnLaborCost({
+      hourlyRate: 17,
+      minutesPerFiring: 30,
+      kilnWorkerCount: -2,
+      piecesPerFiring: 20,
+    })
+
+    expect(result).toBe(0)
   })
 })
 
@@ -52,6 +115,15 @@ describe('calculateOverheadCost', () => {
 
     // $5000 / 300 = $16.67 (rounded)
     expect(result).toBe(16.67)
+  })
+
+  it('returns 0 when monthlyOverhead is negative', () => {
+    const result = calculateOverheadCost({
+      monthlyOverhead: -6000,
+      piecesPerMonth: 400,
+    })
+
+    expect(result).toBe(0)
   })
 })
 
