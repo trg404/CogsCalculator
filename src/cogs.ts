@@ -91,6 +91,74 @@ export function calculateLaborCost(input: LaborInput): LaborResult {
   return result;
 }
 
+// Pro-rated labor allocation per product
+interface LaborAllocation {
+  employeeIndex: number;
+  percentage: number;
+}
+
+interface AllocateLaborInput {
+  employees: Employee[];
+  allocations: Record<string, LaborAllocation[]>;
+}
+
+interface EmployeeDetail {
+  role: string;
+  percentage: number;
+  cost: number;
+}
+
+interface AllocateLaborResult {
+  laborByProduct: Record<string, number>;
+  detailByProduct: Record<string, EmployeeDetail[]>;
+  totalAllocated: number;
+  unallocatedLabor: number;
+}
+
+export function allocateLabor(input: AllocateLaborInput): AllocateLaborResult {
+  const { employees, allocations } = input;
+
+  // Calculate total labor cost
+  const employeeCosts = employees.map((emp) =>
+    Math.round(emp.hourlyRate * emp.hoursWorked * 100) / 100
+  );
+  const totalLabor = employeeCosts.reduce((sum, cost) => sum + cost, 0);
+
+  const laborByProduct: Record<string, number> = {};
+  const detailByProduct: Record<string, EmployeeDetail[]> = {};
+  let totalAllocated = 0;
+
+  for (const [productName, productAllocations] of Object.entries(allocations)) {
+    let productLaborCost = 0;
+    const details: EmployeeDetail[] = [];
+
+    for (const alloc of productAllocations) {
+      const employee = employees[alloc.employeeIndex];
+      const employeeCost = employeeCosts[alloc.employeeIndex];
+      const allocatedCost = Math.round(employeeCost * (alloc.percentage / 100) * 100) / 100;
+
+      productLaborCost += allocatedCost;
+      totalAllocated += allocatedCost;
+
+      details.push({
+        role: employee.role || 'unassigned',
+        percentage: alloc.percentage,
+        cost: allocatedCost,
+      });
+    }
+
+    laborByProduct[productName] = Math.round(productLaborCost * 100) / 100;
+    detailByProduct[productName] = details;
+  }
+
+  return {
+    laborByProduct,
+    detailByProduct,
+    totalAllocated: Math.round(totalAllocated * 100) / 100,
+    unallocatedLabor: Math.round((totalLabor - totalAllocated) * 100) / 100,
+  };
+}
+
 // Product cost calculation from ingredients
 interface Ingredient {
   name: string;

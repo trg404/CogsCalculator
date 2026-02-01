@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCOGS, calculateLaborCost, calculateProductCost, calculateMultiProductCOGS } from './cogs';
+import { calculateCOGS, calculateLaborCost, calculateProductCost, calculateMultiProductCOGS, allocateLabor } from './cogs';
 
 describe('calculateCOGS', () => {
   it('calculates total COGS from purchase cost, shipping, and labor', () => {
@@ -350,5 +350,115 @@ describe('calculateMultiProductCOGS', () => {
 
     expect(result.totalCOGS).toBe(30);
     expect(result.totalProductCost).toBe(0);
+  });
+});
+
+describe('allocateLabor', () => {
+  it('calculates pro-rated labor cost for a single product', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 15, hoursWorked: 8 }  // $120 total
+      ],
+      allocations: {
+        'Cookie': [{ employeeIndex: 0, percentage: 25 }]  // 25% of shift
+      }
+    });
+
+    // $120 * 25% = $30
+    expect(result.laborByProduct['Cookie']).toBe(30);
+  });
+
+  it('calculates labor for multiple employees on one product', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 15, hoursWorked: 8 },  // $120 total
+        { hourlyRate: 20, hoursWorked: 8 }   // $160 total
+      ],
+      allocations: {
+        'Cookie': [
+          { employeeIndex: 0, percentage: 50 },  // $60
+          { employeeIndex: 1, percentage: 25 }   // $40
+        ]
+      }
+    });
+
+    // $60 + $40 = $100
+    expect(result.laborByProduct['Cookie']).toBe(100);
+  });
+
+  it('calculates labor for multiple products', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 20, hoursWorked: 8 }  // $160 total
+      ],
+      allocations: {
+        'Cookie': [{ employeeIndex: 0, percentage: 25 }],   // $40
+        'Muffin': [{ employeeIndex: 0, percentage: 50 }]    // $80
+      }
+    });
+
+    expect(result.laborByProduct['Cookie']).toBe(40);
+    expect(result.laborByProduct['Muffin']).toBe(80);
+    expect(result.totalAllocated).toBe(120);
+  });
+
+  it('tracks unallocated labor', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 20, hoursWorked: 8 }  // $160 total
+      ],
+      allocations: {
+        'Cookie': [{ employeeIndex: 0, percentage: 25 }]  // $40 allocated
+      }
+    });
+
+    // $160 total - $40 allocated = $120 unallocated
+    expect(result.unallocatedLabor).toBe(120);
+  });
+
+  it('handles 100% allocation to single product', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 15, hoursWorked: 8 }
+      ],
+      allocations: {
+        'Cookie': [{ employeeIndex: 0, percentage: 100 }]
+      }
+    });
+
+    expect(result.laborByProduct['Cookie']).toBe(120);
+    expect(result.unallocatedLabor).toBe(0);
+  });
+
+  it('returns breakdown by employee per product', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 15, hoursWorked: 8, role: 'baker' },
+        { hourlyRate: 12, hoursWorked: 8, role: 'assistant' }
+      ],
+      allocations: {
+        'Cookie': [
+          { employeeIndex: 0, percentage: 50 },
+          { employeeIndex: 1, percentage: 25 }
+        ]
+      }
+    });
+
+    expect(result.detailByProduct['Cookie']).toEqual([
+      { role: 'baker', percentage: 50, cost: 60 },
+      { role: 'assistant', percentage: 25, cost: 24 }
+    ]);
+  });
+
+  it('handles empty allocations', () => {
+    const result = allocateLabor({
+      employees: [
+        { hourlyRate: 15, hoursWorked: 8 }
+      ],
+      allocations: {}
+    });
+
+    expect(result.totalAllocated).toBe(0);
+    expect(result.unallocatedLabor).toBe(120);
   });
 });
