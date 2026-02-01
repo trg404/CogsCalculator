@@ -1,138 +1,131 @@
 import { useState, useMemo } from 'react'
-import ProductForm from './components/ProductForm'
-import LaborForm from './components/LaborForm'
-import ShippingForm from './components/ShippingForm'
-import ResultsPanel from './components/ResultsPanel'
+import BisqueCatalogManager from './components/BisqueCatalogManager'
+import StudioSettingsForm from './components/StudioSettingsForm'
+import StaffConfigForm from './components/StaffConfigForm'
+import CostBreakdownPanel from './components/CostBreakdownPanel'
+import { useLocalStorage } from './hooks/useLocalStorage'
+import { BisquePiece, StudioSettings, StaffRole, COGSResult } from './types/pottery'
 import './App.css'
 
-interface Ingredient {
-  id: string
-  name: string
-  quantity: number
-  unitCost: number
+const defaultSettings: StudioSettings = {
+  monthlyOverhead: 6000,
+  piecesPerMonth: 400,
+  glazeCostPerPiece: 0.75,
+  kiln: {
+    hourlyRate: 17,
+    minutesPerFiring: 30,
+    kilnWorkerCount: 2,
+    piecesPerFiring: 20,
+  },
+  staffRoles: [],
 }
 
-interface Product {
-  id: string
-  name: string
-  ingredients: Ingredient[]
-  yield: number
-  quantity: number
+const defaultStaffRoles: StaffRole[] = [
+  { id: '1', name: 'Glazing Guide', hourlyRate: 15, minutesPerCustomer: 20, customersSimultaneous: 4 },
+  { id: '2', name: 'Manager', hourlyRate: 20, minutesPerCustomer: 5, customersSimultaneous: 3 },
+]
+
+function calculateStaffLaborCost(hourlyRate: number, minutesPerCustomer: number, customersSimultaneous: number): number {
+  const cost = (hourlyRate * minutesPerCustomer / 60) / customersSimultaneous
+  return Math.round(cost * 100) / 100
 }
 
-interface Employee {
-  id: string
-  hourlyRate: number
-  hoursWorked: number
-  role: string
-  shift: string
+function calculateKilnLaborCost(hourlyRate: number, minutesPerFiring: number, kilnWorkerCount: number, piecesPerFiring: number): number {
+  const totalLaborCost = (hourlyRate * minutesPerFiring / 60) * kilnWorkerCount
+  const costPerPiece = totalLaborCost / piecesPerFiring
+  return Math.round(costPerPiece * 100) / 100
 }
 
 function App() {
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: crypto.randomUUID(),
-      name: '',
-      ingredients: [{ id: crypto.randomUUID(), name: '', quantity: 0, unitCost: 0 }],
-      yield: 1,
-      quantity: 1,
-    },
+  const [catalog, setCatalog] = useLocalStorage<BisquePiece[]>('pottery-catalog', [
+    { id: '1', name: '', wholesaleCost: 0 },
   ])
+  const [settings, setSettings] = useLocalStorage<StudioSettings>('pottery-settings', defaultSettings)
+  const [staffRoles, setStaffRoles] = useState<StaffRole[]>(defaultStaffRoles)
+  const [selectedPieceName, setSelectedPieceName] = useState<string | null>(null)
 
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: crypto.randomUUID(),
-      hourlyRate: 0,
-      hoursWorked: 0,
-      role: '',
-      shift: '',
-    },
-  ])
+  const selectedPiece = catalog.find((p) => p.name === selectedPieceName) || null
+  const validPieces = catalog.filter((p) => p.name.trim())
 
-  const [shippingCost, setShippingCost] = useState(0)
+  const result: COGSResult | null = useMemo(() => {
+    if (!selectedPiece || !selectedPiece.name.trim()) return null
 
-  const results = useMemo(() => {
-    // Calculate product costs
-    const productResults = products
-      .filter((p) => p.name)
-      .map((product) => {
-        const totalCost = product.ingredients.reduce(
-          (sum, ing) => sum + ing.quantity * ing.unitCost,
-          0
+    const laborByRole: Record<string, number> = {}
+    let laborTotal = 0
+
+    for (const role of staffRoles) {
+      if (role.name.trim()) {
+        const cost = calculateStaffLaborCost(
+          role.hourlyRate,
+          role.minutesPerCustomer,
+          role.customersSimultaneous
         )
-        const costPerUnit = product.yield > 0 ? totalCost / product.yield : 0
-        return {
-          name: product.name,
-          totalCost: Math.round(totalCost * 100) / 100,
-          costPerUnit: Math.round(costPerUnit * 100) / 100,
-          quantity: product.quantity,
-        }
-      })
-
-    // Calculate total product cost
-    const totalProductCost = productResults.reduce(
-      (sum, p) => sum + p.costPerUnit * p.quantity,
-      0
-    )
-
-    // Calculate labor costs
-    const totalLaborCost = employees.reduce(
-      (sum, emp) => sum + emp.hourlyRate * emp.hoursWorked,
-      0
-    )
-
-    // Group labor by role
-    const laborByRole: Record<string, { count: number; totalCost: number }> = {}
-    employees.forEach((emp) => {
-      if (emp.hourlyRate > 0 || emp.hoursWorked > 0) {
-        const role = emp.role || 'unassigned'
-        if (!laborByRole[role]) {
-          laborByRole[role] = { count: 0, totalCost: 0 }
-        }
-        laborByRole[role].count += 1
-        laborByRole[role].totalCost += emp.hourlyRate * emp.hoursWorked
+        laborByRole[role.name] = cost
+        laborTotal += cost
       }
-    })
+    }
 
-    // Calculate total COGS
-    const totalCOGS = totalProductCost + totalLaborCost + shippingCost
+    laborTotal = Math.round(laborTotal * 100) / 100
 
-    // Calculate cost per unit with shared costs
-    const totalUnits = productResults.reduce((sum, p) => sum + p.quantity, 0)
-    const sharedCostPerUnit = totalUnits > 0 ? (totalLaborCost + shippingCost) / totalUnits : 0
+    const kilnCost = calculateKilnLaborCost(
+      settings.kiln.hourlyRate,
+      settings.kiln.minutesPerFiring,
+      settings.kiln.kilnWorkerCount,
+      settings.kiln.piecesPerFiring
+    )
 
-    const costPerUnit: Record<string, number> = {}
-    productResults.forEach((p) => {
-      costPerUnit[p.name] = Math.round((p.costPerUnit + sharedCostPerUnit) * 100) / 100
-    })
+    const overheadCost = settings.piecesPerMonth > 0
+      ? Math.round((settings.monthlyOverhead / settings.piecesPerMonth) * 100) / 100
+      : 0
+
+    const totalCOGS = Math.round(
+      (selectedPiece.wholesaleCost + settings.glazeCostPerPiece + laborTotal + kilnCost + overheadCost) * 100
+    ) / 100
 
     return {
-      totalCOGS: Math.round(totalCOGS * 100) / 100,
-      totalProductCost: Math.round(totalProductCost * 100) / 100,
-      totalLaborCost: Math.round(totalLaborCost * 100) / 100,
-      shippingCost,
-      products: productResults,
-      laborByRole,
-      costPerUnit,
+      totalCOGS,
+      breakdown: {
+        bisqueCost: selectedPiece.wholesaleCost,
+        glazeCost: settings.glazeCostPerPiece,
+        laborByRole,
+        laborTotal,
+        kilnCost,
+        overheadCost,
+      },
     }
-  }, [products, employees, shippingCost])
+  }, [selectedPiece, staffRoles, settings])
 
   return (
     <div className="app">
       <header>
-        <h1>COGS Calculator</h1>
+        <h1>Pottery Studio COGS Calculator</h1>
       </header>
 
       <main>
-        <div className="forms-container">
-          <ProductForm products={products} onChange={setProducts} />
-          <LaborForm employees={employees} onChange={setEmployees} />
-          <ShippingForm shippingCost={shippingCost} onChange={setShippingCost} />
+        <div className="calculator-section">
+          <label>
+            Select Piece
+            <select
+              value={selectedPieceName || ''}
+              onChange={(e) => setSelectedPieceName(e.target.value || null)}
+            >
+              <option value="">-- Select a piece --</option>
+              {validPieces.map((piece) => (
+                <option key={piece.id} value={piece.name}>
+                  {piece.name} (${piece.wholesaleCost.toFixed(2)})
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        <aside>
-          <ResultsPanel results={results} />
-        </aside>
+        <div className="forms-container">
+          <StudioSettingsForm settings={settings} onChange={setSettings} />
+          <StaffConfigForm roles={staffRoles} onChange={setStaffRoles} />
+          <BisqueCatalogManager pieces={catalog} onChange={setCatalog} />
+        </div>
+
+        <CostBreakdownPanel pieceName={selectedPiece?.name || null} result={result} />
       </main>
     </div>
   )

@@ -1,36 +1,49 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 
-describe('App', () => {
-  it('renders the main heading', () => {
-    render(<App />)
-    expect(screen.getByText('COGS Calculator')).toBeInTheDocument()
+describe('Pottery Studio COGS Calculator', () => {
+  beforeEach(() => {
+    localStorage.clear()
   })
 
-  it('renders all form sections', () => {
+  it('renders app title', () => {
     render(<App />)
-    expect(screen.getByText('Products')).toBeInTheDocument()
-    expect(screen.getByText('Labor')).toBeInTheDocument()
-    expect(screen.getByText('Shipping')).toBeInTheDocument()
-    expect(screen.getByText('Results')).toBeInTheDocument()
+    expect(screen.getByText('Pottery Studio COGS Calculator')).toBeInTheDocument()
   })
 
-  it('starts with one empty product', () => {
+  it('renders bisque piece selector', () => {
     render(<App />)
-    expect(screen.getByLabelText('Product Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Select Piece')).toBeInTheDocument()
   })
 
-  it('starts with one empty employee', () => {
+  it('renders settings section', () => {
     render(<App />)
-    expect(screen.getByLabelText('Hourly Rate')).toBeInTheDocument()
+    expect(screen.getByText('Studio Settings')).toBeInTheDocument()
   })
 
-  it('shows results panel with zero values initially', () => {
+  it('renders staff roles section', () => {
     render(<App />)
-    expect(screen.getByText('Total COGS:')).toBeInTheDocument()
-    // Multiple $0.00 values are expected (product, labor, shipping, total)
-    expect(screen.getAllByText('$0.00').length).toBeGreaterThan(0)
+    expect(screen.getByText('Staff Roles')).toBeInTheDocument()
+  })
+
+  it('renders bisque catalog section', () => {
+    render(<App />)
+    expect(screen.getByText('Bisque Catalog')).toBeInTheDocument()
+  })
+
+  it('shows cost breakdown when piece is selected', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    // Add a piece to catalog first
+    await user.type(screen.getByLabelText('Piece Name'), 'Snowman')
+    await user.type(screen.getByLabelText('Wholesale Cost'), '4.50')
+
+    // Select the piece
+    await user.selectOptions(screen.getByLabelText('Select Piece'), 'Snowman')
+
+    expect(screen.getByText(/Snowman - Cost Breakdown/)).toBeInTheDocument()
   })
 })
