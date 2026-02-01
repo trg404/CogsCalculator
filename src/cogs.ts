@@ -91,6 +91,116 @@ export function calculateLaborCost(input: LaborInput): LaborResult {
   return result;
 }
 
+// Product cost calculation from ingredients
+interface Ingredient {
+  name: string;
+  quantity: number;
+  unitCost: number;
+}
+
+interface ProductInput {
+  name: string;
+  ingredients: Ingredient[];
+  yield?: number;
+}
+
+interface ProductResult {
+  productName: string;
+  totalCost: number;
+  costPerUnit?: number;
+  breakdown: Record<string, number>;
+}
+
+export function calculateProductCost(input: ProductInput): ProductResult {
+  const { name, ingredients, yield: batchYield } = input;
+
+  const breakdown: Record<string, number> = {};
+  let totalCost = 0;
+
+  for (const ingredient of ingredients) {
+    const ingredientCost = Math.round(ingredient.quantity * ingredient.unitCost * 100) / 100;
+    breakdown[ingredient.name] = ingredientCost;
+    totalCost += ingredientCost;
+  }
+
+  totalCost = Math.round(totalCost * 100) / 100;
+
+  const result: ProductResult = {
+    productName: name,
+    totalCost,
+    breakdown,
+  };
+
+  if (batchYield && batchYield > 0) {
+    result.costPerUnit = Math.round((totalCost / batchYield) * 100) / 100;
+  }
+
+  return result;
+}
+
+// Multi-product COGS calculation
+interface ProductEntry {
+  name: string;
+  unitCost: number;
+  quantity: number;
+}
+
+interface MultiProductInput {
+  products: ProductEntry[];
+  shippingCost: number;
+  laborCost: number;
+}
+
+interface ProductBreakdown {
+  quantity: number;
+  productCost: number;
+}
+
+interface MultiProductResult {
+  totalCOGS: number;
+  totalProductCost: number;
+  byProduct: Record<string, ProductBreakdown>;
+  costPerUnit: Record<string, number>;
+}
+
+export function calculateMultiProductCOGS(input: MultiProductInput): MultiProductResult {
+  const { products, shippingCost, laborCost } = input;
+
+  const byProduct: Record<string, ProductBreakdown> = {};
+  let totalProductCost = 0;
+  let totalUnits = 0;
+
+  for (const product of products) {
+    const productCost = Math.round(product.unitCost * product.quantity * 100) / 100;
+    byProduct[product.name] = {
+      quantity: product.quantity,
+      productCost,
+    };
+    totalProductCost += productCost;
+    totalUnits += product.quantity;
+  }
+
+  totalProductCost = Math.round(totalProductCost * 100) / 100;
+  const sharedCosts = shippingCost + laborCost;
+  const totalCOGS = Math.round((totalProductCost + sharedCosts) * 100) / 100;
+
+  // Calculate cost per unit with shared costs distributed
+  const costPerUnit: Record<string, number> = {};
+  const sharedCostPerUnit = totalUnits > 0 ? sharedCosts / totalUnits : 0;
+
+  for (const product of products) {
+    const perUnitWithShared = product.unitCost + sharedCostPerUnit;
+    costPerUnit[product.name] = Math.round(perUnitWithShared * 100) / 100;
+  }
+
+  return {
+    totalCOGS,
+    totalProductCost,
+    byProduct,
+    costPerUnit,
+  };
+}
+
 export function calculateCOGS(input: COGSInput): COGSResult {
   const { purchaseCost, shippingCost, laborCost, quantity } = input;
 

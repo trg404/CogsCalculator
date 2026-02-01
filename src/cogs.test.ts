@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCOGS, calculateLaborCost } from './cogs';
+import { calculateCOGS, calculateLaborCost, calculateProductCost, calculateMultiProductCOGS } from './cogs';
 
 describe('calculateCOGS', () => {
   it('calculates total COGS from purchase cost, shipping, and labor', () => {
@@ -191,5 +191,164 @@ describe('calculateLaborCost', () => {
     // 500 + 50 + 240 = 790, per unit = 7.90
     expect(cogsResult.totalCOGS).toBe(790);
     expect(cogsResult.costPerUnit).toBe(7.9);
+  });
+});
+
+describe('calculateProductCost', () => {
+  it('calculates cost from a single ingredient', () => {
+    const result = calculateProductCost({
+      name: 'Simple Item',
+      ingredients: [
+        { name: 'flour', quantity: 2, unitCost: 1.50 }
+      ]
+    });
+
+    expect(result.totalCost).toBe(3);
+  });
+
+  it('calculates cost from multiple ingredients', () => {
+    const result = calculateProductCost({
+      name: 'Cookie',
+      ingredients: [
+        { name: 'flour', quantity: 2, unitCost: 1.50 },     // $3.00
+        { name: 'sugar', quantity: 1, unitCost: 2.00 },     // $2.00
+        { name: 'butter', quantity: 0.5, unitCost: 4.00 },  // $2.00
+      ]
+    });
+
+    expect(result.totalCost).toBe(7);
+    expect(result.productName).toBe('Cookie');
+  });
+
+  it('returns breakdown by ingredient', () => {
+    const result = calculateProductCost({
+      name: 'Cookie',
+      ingredients: [
+        { name: 'flour', quantity: 2, unitCost: 1.50 },
+        { name: 'sugar', quantity: 1, unitCost: 2.00 },
+      ]
+    });
+
+    expect(result.breakdown).toEqual({
+      flour: 3,
+      sugar: 2,
+    });
+  });
+
+  it('handles decimal quantities and costs', () => {
+    const result = calculateProductCost({
+      name: 'Fancy Item',
+      ingredients: [
+        { name: 'gold flakes', quantity: 0.25, unitCost: 10.00 },
+      ]
+    });
+
+    expect(result.totalCost).toBe(2.5);
+  });
+
+  it('calculates cost per unit when yield is provided', () => {
+    const result = calculateProductCost({
+      name: 'Cookie Batch',
+      ingredients: [
+        { name: 'flour', quantity: 5, unitCost: 1.50 },     // $7.50
+        { name: 'sugar', quantity: 2, unitCost: 2.00 },     // $4.00
+        { name: 'butter', quantity: 1, unitCost: 4.00 },    // $4.00
+      ],
+      yield: 24  // makes 24 cookies
+    });
+
+    // Total: $15.50, per cookie: $0.65 (rounded)
+    expect(result.totalCost).toBe(15.5);
+    expect(result.costPerUnit).toBe(0.65);
+  });
+});
+
+describe('calculateMultiProductCOGS', () => {
+  it('calculates COGS for multiple products', () => {
+    const result = calculateMultiProductCOGS({
+      products: [
+        { name: 'Cookie', unitCost: 0.65, quantity: 100 },
+        { name: 'Cake', unitCost: 5.00, quantity: 20 },
+      ],
+      shippingCost: 50,
+      laborCost: 200,
+    });
+
+    // Products: (0.65 * 100) + (5 * 20) = 65 + 100 = 165
+    // Total: 165 + 50 + 200 = 415
+    expect(result.totalCOGS).toBe(415);
+  });
+
+  it('returns breakdown by product', () => {
+    const result = calculateMultiProductCOGS({
+      products: [
+        { name: 'Cookie', unitCost: 1, quantity: 50 },
+        { name: 'Cake', unitCost: 10, quantity: 10 },
+      ],
+      shippingCost: 20,
+      laborCost: 80,
+    });
+
+    expect(result.byProduct).toEqual({
+      Cookie: { quantity: 50, productCost: 50 },
+      Cake: { quantity: 10, productCost: 100 },
+    });
+  });
+
+  it('calculates cost per unit with shared costs distributed', () => {
+    const result = calculateMultiProductCOGS({
+      products: [
+        { name: 'Cookie', unitCost: 0.50, quantity: 100 },
+        { name: 'Muffin', unitCost: 0.75, quantity: 100 },
+      ],
+      shippingCost: 20,
+      laborCost: 80,
+    });
+
+    // Products total: 50 + 75 = 125
+    // Shared costs: 20 + 80 = 100
+    // Total units: 200
+    // Shared cost per unit: 100 / 200 = 0.50
+    // Cookie total per unit: 0.50 + 0.50 = 1.00
+    // Muffin total per unit: 0.75 + 0.50 = 1.25
+    expect(result.costPerUnit).toEqual({
+      Cookie: 1,
+      Muffin: 1.25,
+    });
+  });
+
+  it('integrates with calculateProductCost', () => {
+    const cookie = calculateProductCost({
+      name: 'Cookie',
+      ingredients: [
+        { name: 'flour', quantity: 1, unitCost: 1.50 },
+        { name: 'sugar', quantity: 0.5, unitCost: 2.00 },
+      ],
+      yield: 12
+    });
+
+    const result = calculateMultiProductCOGS({
+      products: [
+        { name: cookie.productName, unitCost: cookie.costPerUnit!, quantity: 24 },
+      ],
+      shippingCost: 10,
+      laborCost: 40,
+    });
+
+    // Cookie cost per unit: (1.50 + 1.00) / 12 = 0.21 (rounded)
+    // Products: 0.21 * 24 = 5.04
+    // Total: 5.04 + 10 + 40 = 55.04
+    expect(result.totalCOGS).toBeCloseTo(55, 0);
+  });
+
+  it('handles empty products array', () => {
+    const result = calculateMultiProductCOGS({
+      products: [],
+      shippingCost: 10,
+      laborCost: 20,
+    });
+
+    expect(result.totalCOGS).toBe(30);
+    expect(result.totalProductCost).toBe(0);
   });
 });
