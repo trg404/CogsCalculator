@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { calculateStaffLaborCost, calculateKilnLaborCost, calculateOverheadCost } from './pottery'
+import {
+  calculateStaffLaborCost,
+  calculateKilnLaborCost,
+  calculateOverheadCost,
+  calculatePieceCOGS,
+} from './pottery'
 
 describe('calculateStaffLaborCost', () => {
   it('calculates glazing guide cost per piece with simultaneous customers', () => {
@@ -47,5 +52,44 @@ describe('calculateOverheadCost', () => {
 
     // $5000 / 300 = $16.67 (rounded)
     expect(result).toBe(16.67)
+  })
+})
+
+describe('calculatePieceCOGS', () => {
+  it('calculates total COGS for a piece with full breakdown', () => {
+    const result = calculatePieceCOGS({
+      bisqueCost: 4.50,
+      glazeCostPerPiece: 0.75,
+      staffRoles: [
+        { name: 'Glazing Guide', hourlyRate: 15, minutesPerCustomer: 20, customersSimultaneous: 4 },
+        { name: 'Manager', hourlyRate: 20, minutesPerCustomer: 5, customersSimultaneous: 3 },
+      ],
+      kiln: {
+        hourlyRate: 17,
+        minutesPerFiring: 30,
+        kilnWorkerCount: 2,
+        piecesPerFiring: 20,
+      },
+      overhead: {
+        monthlyOverhead: 6000,
+        piecesPerMonth: 400,
+      },
+    })
+
+    // Bisque: $4.50
+    // Glaze: $0.75
+    // Glazing Guide: ($15 × 20 / 60) / 4 = $1.25
+    // Manager: ($20 × 5 / 60) / 3 = $0.56
+    // Kiln: ($17 × 30 / 60 × 2) / 20 = $0.85
+    // Overhead: $6000 / 400 = $15.00
+    // Total: 4.50 + 0.75 + 1.25 + 0.56 + 0.85 + 15.00 = $22.91
+
+    expect(result.totalCOGS).toBe(22.91)
+    expect(result.breakdown.bisqueCost).toBe(4.5)
+    expect(result.breakdown.glazeCost).toBe(0.75)
+    expect(result.breakdown.laborByRole['Glazing Guide']).toBe(1.25)
+    expect(result.breakdown.laborByRole['Manager']).toBe(0.56)
+    expect(result.breakdown.kilnCost).toBe(0.85)
+    expect(result.breakdown.overheadCost).toBe(15)
   })
 })
