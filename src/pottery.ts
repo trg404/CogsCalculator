@@ -66,6 +66,25 @@ interface OverheadInput {
   piecesPerMonth: number
 }
 
+interface OverheadItem {
+  id: string
+  name: string
+  amount: number
+}
+
+export function sumOverheadItems(items: OverheadItem[]): number {
+  return items.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
+}
+
+interface OverheadSettings {
+  fixedCosts: OverheadItem[]
+  variableCosts: OverheadItem[]
+}
+
+export function calculateTotalOverhead(overhead: OverheadSettings): number {
+  return sumOverheadItems(overhead.fixedCosts) + sumOverheadItems(overhead.variableCosts)
+}
+
 export function calculateOverheadCost(input: OverheadInput): number {
   const { monthlyOverhead, piecesPerMonth } = input
   if (piecesPerMonth <= 0 || monthlyOverhead < 0) return 0

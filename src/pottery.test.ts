@@ -4,6 +4,8 @@ import {
   calculateKilnLaborCost,
   calculateOverheadCost,
   calculatePieceCOGS,
+  sumOverheadItems,
+  calculateTotalOverhead,
 } from './pottery'
 
 describe('calculateStaffLaborCost', () => {
@@ -124,6 +126,47 @@ describe('calculateOverheadCost', () => {
     })
 
     expect(result).toBe(0)
+  })
+})
+
+describe('sumOverheadItems', () => {
+  it('sums all item amounts', () => {
+    const items = [
+      { id: '1', name: 'Rent', amount: 2000 },
+      { id: '2', name: 'Insurance', amount: 300 },
+    ]
+    const result = sumOverheadItems(items)
+    expect(result).toBe(2300)
+  })
+
+  it('returns 0 for empty array', () => {
+    const result = sumOverheadItems([])
+    expect(result).toBe(0)
+  })
+
+  it('ignores negative amounts', () => {
+    const items = [
+      { id: '1', name: 'Rent', amount: 2000 },
+      { id: '2', name: 'Bad', amount: -500 },
+    ]
+    const result = sumOverheadItems(items)
+    expect(result).toBe(2000)
+  })
+})
+
+describe('calculateTotalOverhead', () => {
+  it('sums fixed and variable costs', () => {
+    const overhead = {
+      fixedCosts: [
+        { id: '1', name: 'Rent', amount: 2000 },
+        { id: '2', name: 'Insurance', amount: 300 },
+      ],
+      variableCosts: [
+        { id: '3', name: 'Utilities', amount: 400 },
+      ],
+    }
+    const result = calculateTotalOverhead(overhead)
+    expect(result).toBe(2700)
   })
 })
 
