@@ -5,12 +5,22 @@ import StaffConfigForm from './components/StaffConfigForm'
 import CostBreakdownPanel from './components/CostBreakdownPanel'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { BisquePiece, StudioSettings, StaffRole, COGSResult } from './types/pottery'
-import { calculateStaffLaborCost, calculateKilnLaborCost, calculateOverheadCost } from '../../src/pottery'
+import { calculateStaffLaborCost, calculateKilnLaborCost, calculateOverheadCost, calculateTotalOverhead } from '../../src/pottery'
 import { roundCents } from '../../src/utils'
 import './App.css'
 
 const defaultSettings: StudioSettings = {
-  monthlyOverhead: 6000,
+  overhead: {
+    fixedCosts: [
+      { id: '1', name: 'Rent', amount: 0 },
+      { id: '2', name: 'Insurance', amount: 0 },
+      { id: '3', name: 'Property Taxes', amount: 0 },
+    ],
+    variableCosts: [
+      { id: '4', name: 'Utilities', amount: 0 },
+      { id: '5', name: 'Supplies', amount: 0 },
+    ],
+  },
   piecesPerMonth: 400,
   glazeCostPerPiece: 0.75,
   kiln: {
@@ -65,8 +75,9 @@ function App() {
       piecesPerFiring: settings.kiln.piecesPerFiring,
     })
 
+    const monthlyOverhead = calculateTotalOverhead(settings.overhead)
     const overheadCost = calculateOverheadCost({
-      monthlyOverhead: settings.monthlyOverhead,
+      monthlyOverhead,
       piecesPerMonth: settings.piecesPerMonth,
     })
 
