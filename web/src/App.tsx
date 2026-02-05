@@ -9,6 +9,36 @@ import { calculateStaffLaborCost, calculateKilnLaborCost, calculateOverheadCost,
 import { roundCents } from '../../src/utils'
 import './App.css'
 
+interface LegacyStudioSettings {
+  monthlyOverhead?: number
+  piecesPerMonth: number
+  glazeCostPerPiece: number
+  kiln: StudioSettings['kiln']
+  staffRoles: StudioSettings['staffRoles']
+}
+
+function migrateSettings(stored: LegacyStudioSettings | StudioSettings): StudioSettings {
+  // Already migrated
+  if ('overhead' in stored && stored.overhead) {
+    return stored as StudioSettings
+  }
+
+  // Migrate from legacy monthlyOverhead
+  const legacy = stored as LegacyStudioSettings
+  return {
+    overhead: {
+      fixedCosts: [
+        { id: '1', name: 'Other', amount: legacy.monthlyOverhead || 0 },
+      ],
+      variableCosts: [],
+    },
+    piecesPerMonth: legacy.piecesPerMonth,
+    glazeCostPerPiece: legacy.glazeCostPerPiece,
+    kiln: legacy.kiln,
+    staffRoles: legacy.staffRoles,
+  }
+}
+
 const defaultSettings: StudioSettings = {
   overhead: {
     fixedCosts: [
@@ -41,7 +71,11 @@ function App() {
   const [catalog, setCatalog] = useLocalStorage<BisquePiece[]>('pottery-catalog', [
     { id: '1', name: '', wholesaleCost: 0 },
   ])
-  const [settings, setSettings] = useLocalStorage<StudioSettings>('pottery-settings', defaultSettings)
+  const [settings, setSettings] = useLocalStorage<StudioSettings>(
+    'pottery-settings',
+    defaultSettings,
+    migrateSettings
+  )
   const [staffRoles, setStaffRoles] = useState<StaffRole[]>(defaultStaffRoles)
   const [selectedPieceName, setSelectedPieceName] = useState<string | null>(null)
 
