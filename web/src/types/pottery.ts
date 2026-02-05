@@ -19,8 +19,19 @@ export interface KilnSettings {
   piecesPerFiring: number
 }
 
+export interface OverheadItem {
+  id: string
+  name: string
+  amount: number
+}
+
+export interface OverheadSettings {
+  fixedCosts: OverheadItem[]
+  variableCosts: OverheadItem[]
+}
+
 export interface StudioSettings {
-  monthlyOverhead: number
+  overhead: OverheadSettings
   piecesPerMonth: number
   glazeCostPerPiece: number
   kiln: KilnSettings
