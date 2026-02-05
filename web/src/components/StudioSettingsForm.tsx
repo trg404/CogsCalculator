@@ -1,8 +1,16 @@
-import { StudioSettings } from '../types/pottery'
+import { StudioSettings, OverheadItem } from '../types/pottery'
+import OverheadCategorySection from './OverheadCategorySection'
 
 interface Props {
   settings: StudioSettings
   onChange: (settings: StudioSettings) => void
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount)
 }
 
 export default function StudioSettingsForm({ settings, onChange }: Props) {
@@ -17,22 +25,44 @@ export default function StudioSettingsForm({ settings, onChange }: Props) {
     onChange({ ...settings, kiln: { ...settings.kiln, [field]: value } })
   }
 
+  const updateFixedCosts = (fixedCosts: OverheadItem[]) => {
+    onChange({ ...settings, overhead: { ...settings.overhead, fixedCosts } })
+  }
+
+  const updateVariableCosts = (variableCosts: OverheadItem[]) => {
+    onChange({ ...settings, overhead: { ...settings.overhead, variableCosts } })
+  }
+
+  const fixedTotal = settings.overhead.fixedCosts.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
+  const variableTotal = settings.overhead.variableCosts.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
+  const monthlyTotal = fixedTotal + variableTotal
+
   return (
     <section className="form-section">
       <h2>Studio Settings</h2>
 
       <div className="settings-group">
-        <h3>Overhead & Volume</h3>
-        <label>
-          Monthly Overhead ($)
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={settings.monthlyOverhead || ''}
-            onChange={(e) => updateField('monthlyOverhead', parseFloat(e.target.value) || 0)}
-          />
-        </label>
+        <h3>Overhead Costs</h3>
+
+        <OverheadCategorySection
+          title="Fixed Costs"
+          items={settings.overhead.fixedCosts}
+          onChange={updateFixedCosts}
+        />
+
+        <OverheadCategorySection
+          title="Variable Costs"
+          items={settings.overhead.variableCosts}
+          onChange={updateVariableCosts}
+        />
+
+        <div className="overhead-total">
+          <strong>Monthly Overhead Total:</strong> <span>{formatCurrency(monthlyTotal)}</span>
+        </div>
+      </div>
+
+      <div className="settings-group">
+        <h3>Production Volume</h3>
         <label>
           Pieces per Month
           <input

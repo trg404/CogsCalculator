@@ -5,9 +5,16 @@ import StudioSettingsForm from './StudioSettingsForm'
 import { StudioSettings } from '../types/pottery'
 
 const defaultSettings: StudioSettings = {
-  monthlyOverhead: 0,
-  piecesPerMonth: 0,
-  glazeCostPerPiece: 0,
+  overhead: {
+    fixedCosts: [
+      { id: '1', name: 'Rent', amount: 2000 },
+    ],
+    variableCosts: [
+      { id: '2', name: 'Utilities', amount: 400 },
+    ],
+  },
+  piecesPerMonth: 400,
+  glazeCostPerPiece: 0.75,
   kiln: {
     hourlyRate: 17,
     minutesPerFiring: 30,
@@ -18,9 +25,20 @@ const defaultSettings: StudioSettings = {
 }
 
 describe('StudioSettingsForm', () => {
-  it('renders overhead input', () => {
+  it('renders Fixed Costs section', () => {
     render(<StudioSettingsForm settings={defaultSettings} onChange={() => {}} />)
-    expect(screen.getByLabelText('Monthly Overhead ($)')).toBeInTheDocument()
+    expect(screen.getByText('Fixed Costs')).toBeInTheDocument()
+  })
+
+  it('renders Variable Costs section', () => {
+    render(<StudioSettingsForm settings={defaultSettings} onChange={() => {}} />)
+    expect(screen.getByText('Variable Costs')).toBeInTheDocument()
+  })
+
+  it('displays monthly overhead total', () => {
+    render(<StudioSettingsForm settings={defaultSettings} onChange={() => {}} />)
+    expect(screen.getByText(/Monthly Overhead Total/)).toBeInTheDocument()
+    expect(screen.getByText('$2,400.00')).toBeInTheDocument()
   })
 
   it('renders pieces per month input', () => {
@@ -41,12 +59,13 @@ describe('StudioSettingsForm', () => {
     expect(screen.getByLabelText('Pieces per Firing')).toBeInTheDocument()
   })
 
-  it('calls onChange when overhead changes', async () => {
+  it('calls onChange when pieces per month changes', async () => {
     const user = userEvent.setup()
     const onChange = vi.fn()
     render(<StudioSettingsForm settings={defaultSettings} onChange={onChange} />)
 
-    await user.type(screen.getByLabelText('Monthly Overhead ($)'), '5000')
+    await user.clear(screen.getByLabelText('Pieces per Month'))
+    await user.type(screen.getByLabelText('Pieces per Month'), '500')
     expect(onChange).toHaveBeenCalled()
   })
 })
