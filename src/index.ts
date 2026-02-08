@@ -3,6 +3,9 @@ import { calculatePieceCOGS } from './pottery'
 // ============================================
 // POTTERY STUDIO COGS EXAMPLE
 // ============================================
+// This file demonstrates how to use the COGS calculator with sample data
+// for a fictional pottery piece ("Frosty Snowman Globe"). It calls
+// calculatePieceCOGS() and prints a formatted cost breakdown to the console.
 
 const result = calculatePieceCOGS({
   bisqueCost: 4.50,
