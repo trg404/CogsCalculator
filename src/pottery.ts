@@ -21,7 +21,7 @@ interface PieceCOGSInput {
   overhead: OverheadInput
 }
 
-interface PieceCOGSBreakdown {
+export interface COGSBreakdown {
   bisqueCost: number
   glazeCost: number
   laborByRole: Record<string, number>
@@ -30,9 +30,9 @@ interface PieceCOGSBreakdown {
   overheadCost: number
 }
 
-interface PieceCOGSResult {
+export interface COGSResult {
   totalCOGS: number
-  breakdown: PieceCOGSBreakdown
+  breakdown: COGSBreakdown
 }
 
 export function calculateStaffLaborCost(input: StaffLaborInput): number {
@@ -66,7 +66,7 @@ interface OverheadInput {
   piecesPerMonth: number
 }
 
-interface OverheadItem {
+export interface OverheadItem {
   id: string
   name: string
   amount: number
@@ -76,7 +76,7 @@ export function sumOverheadItems(items: OverheadItem[]): number {
   return items.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
 }
 
-interface OverheadSettings {
+export interface OverheadSettings {
   fixedCosts: OverheadItem[]
   variableCosts: OverheadItem[]
 }
@@ -92,7 +92,7 @@ export function calculateOverheadCost(input: OverheadInput): number {
   return roundCents(costPerPiece)
 }
 
-export function calculatePieceCOGS(input: PieceCOGSInput): PieceCOGSResult {
+export function calculatePieceCOGS(input: PieceCOGSInput): COGSResult {
   const { bisqueCost, glazeCostPerPiece, staffRoles, kiln, overhead } = input
 
   const laborByRole: Record<string, number> = {}

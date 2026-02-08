@@ -1,12 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import BisqueCatalogManager from './components/BisqueCatalogManager'
 import StudioSettingsForm from './components/StudioSettingsForm'
 import StaffConfigForm from './components/StaffConfigForm'
 import CostBreakdownPanel from './components/CostBreakdownPanel'
 import { useLocalStorage } from './hooks/useLocalStorage'
-import { BisquePiece, StudioSettings, StaffRole, COGSResult } from './types/pottery'
-import { calculateStaffLaborCost, calculateKilnLaborCost, calculateOverheadCost, calculateTotalOverhead } from '../../src/pottery'
-import { roundCents } from '../../src/utils'
+import { BisquePiece, StudioSettings, StaffRole } from './types/pottery'
+import { calculatePieceCOGS, calculateTotalOverhead } from '../../src/pottery'
 import './App.css'
 
 interface LegacyStudioSettings {
@@ -76,60 +75,25 @@ function App() {
     defaultSettings,
     migrateSettings
   )
-  const [staffRoles, setStaffRoles] = useState<StaffRole[]>(defaultStaffRoles)
+  const [staffRoles, setStaffRoles] = useLocalStorage<StaffRole[]>('pottery-staff-roles', defaultStaffRoles)
   const [selectedPieceName, setSelectedPieceName] = useState<string | null>(null)
 
   const selectedPiece = catalog.find((p) => p.name === selectedPieceName) || null
   const validPieces = catalog.filter((p) => p.name.trim())
 
-  const result: COGSResult | null = useMemo(() => {
+  const result = useMemo(() => {
     if (!selectedPiece || !selectedPiece.name.trim()) return null
 
-    const laborByRole: Record<string, number> = {}
-    let laborTotal = 0
-
-    for (const role of staffRoles) {
-      if (role.name.trim()) {
-        const cost = calculateStaffLaborCost({
-          hourlyRate: role.hourlyRate,
-          minutesPerCustomer: role.minutesPerCustomer,
-          customersSimultaneous: role.customersSimultaneous,
-        })
-        laborByRole[role.name] = cost
-        laborTotal += cost
-      }
-    }
-
-    laborTotal = roundCents(laborTotal)
-
-    const kilnCost = calculateKilnLaborCost({
-      hourlyRate: settings.kiln.hourlyRate,
-      minutesPerFiring: settings.kiln.minutesPerFiring,
-      kilnWorkerCount: settings.kiln.kilnWorkerCount,
-      piecesPerFiring: settings.kiln.piecesPerFiring,
-    })
-
+    const validRoles = staffRoles.filter(r => r.name.trim())
     const monthlyOverhead = calculateTotalOverhead(settings.overhead)
-    const overheadCost = calculateOverheadCost({
-      monthlyOverhead,
-      piecesPerMonth: settings.piecesPerMonth,
+
+    return calculatePieceCOGS({
+      bisqueCost: selectedPiece.wholesaleCost,
+      glazeCostPerPiece: settings.glazeCostPerPiece,
+      staffRoles: validRoles,
+      kiln: settings.kiln,
+      overhead: { monthlyOverhead, piecesPerMonth: settings.piecesPerMonth },
     })
-
-    const totalCOGS = roundCents(
-      selectedPiece.wholesaleCost + settings.glazeCostPerPiece + laborTotal + kilnCost + overheadCost
-    )
-
-    return {
-      totalCOGS,
-      breakdown: {
-        bisqueCost: selectedPiece.wholesaleCost,
-        glazeCost: settings.glazeCostPerPiece,
-        laborByRole,
-        laborTotal,
-        kilnCost,
-        overheadCost,
-      },
-    }
   }, [selectedPiece, staffRoles, settings])
 
   return (

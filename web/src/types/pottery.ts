@@ -1,3 +1,5 @@
+import type { OverheadSettings } from '../../../src/pottery'
+
 export interface BisquePiece {
   id: string
   name: string
@@ -19,16 +21,7 @@ export interface KilnSettings {
   piecesPerFiring: number
 }
 
-export interface OverheadItem {
-  id: string
-  name: string
-  amount: number
-}
-
-export interface OverheadSettings {
-  fixedCosts: OverheadItem[]
-  variableCosts: OverheadItem[]
-}
+export type { COGSBreakdown, COGSResult, OverheadItem, OverheadSettings } from '../../../src/pottery'
 
 export interface StudioSettings {
   overhead: OverheadSettings
@@ -36,18 +29,4 @@ export interface StudioSettings {
   glazeCostPerPiece: number
   kiln: KilnSettings
   staffRoles: StaffRole[]
-}
-
-export interface COGSBreakdown {
-  bisqueCost: number
-  glazeCost: number
-  laborByRole: Record<string, number>
-  laborTotal: number
-  kilnCost: number
-  overheadCost: number
-}
-
-export interface COGSResult {
-  totalCOGS: number
-  breakdown: COGSBreakdown
 }
