@@ -77,10 +77,12 @@ const defaultStaffRoles: StaffRole[] = [
 ]
 
 /**
- * Root application component. Manages three pieces of persisted state:
- *   - catalog:    the bisque pieces the studio sells
- *   - settings:   overhead, kiln, glaze, and production volume config
- *   - staffRoles: employee roles and their labor cost parameters
+ * Root application component. Manages three pieces of persisted state
+ * (via useLocalStorage) plus one local UI state:
+ *   - catalog:         the bisque pieces the studio sells (persisted)
+ *   - settings:        overhead, kiln, glaze, and production volume config (persisted)
+ *   - staffRoles:      employee roles and their labor cost parameters (persisted)
+ *   - selectedPieceId: which piece is currently selected for breakdown (local)
  *
  * When the user selects a piece, the COGS is recalculated in real time.
  */
