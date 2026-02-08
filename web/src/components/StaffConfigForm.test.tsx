@@ -48,4 +48,56 @@ describe('StaffConfigForm', () => {
     await user.type(input, '18')
     expect(onChange).toHaveBeenCalled()
   })
+
+  it('calls onChange with new role appended when Add Role is clicked', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.click(screen.getByRole('button', { name: /add role/i }))
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        defaultRole,
+        expect.objectContaining({
+          name: '',
+          hourlyRate: 15,
+          minutesPerCustomer: 15,
+          customersSimultaneous: 1,
+        }),
+      ])
+    )
+  })
+
+  it('calls onChange with role removed when delete is clicked', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const secondRole: StaffRole = {
+      id: '2',
+      name: 'Manager',
+      hourlyRate: 20,
+      minutesPerCustomer: 5,
+      customersSimultaneous: 3,
+    }
+    render(<StaffConfigForm roles={[defaultRole, secondRole]} onChange={onChange} />)
+
+    const deleteButtons = screen.getAllByRole('button', { name: '×' })
+    await user.click(deleteButtons[0])
+
+    expect(onChange).toHaveBeenCalledWith([secondRole])
+  })
+
+  it('hides delete button when only one role exists', () => {
+    render(<StaffConfigForm roles={[defaultRole]} onChange={() => {}} />)
+    expect(screen.queryByRole('button', { name: '×' })).not.toBeInTheDocument()
+  })
+
+  it('shows delete buttons when multiple roles exist', () => {
+    const roles: StaffRole[] = [
+      defaultRole,
+      { id: '2', name: 'Manager', hourlyRate: 20, minutesPerCustomer: 5, customersSimultaneous: 3 },
+    ]
+    render(<StaffConfigForm roles={roles} onChange={() => {}} />)
+    expect(screen.getAllByRole('button', { name: '×' })).toHaveLength(2)
+  })
 })

@@ -69,14 +69,16 @@ npm test
 
 ```
 CogsCalculator/
-├── src/                 # Core calculation library
+├── src/                 # Core calculation library (no UI dependencies)
 │   ├── pottery.ts       # Pottery-specific COGS calculations
-│   ├── cogs.ts          # General COGS utilities
-│   └── utils.ts         # Helper functions
+│   ├── utils.ts         # Helper functions (rounding, etc.)
+│   └── index.ts         # CLI demo entry point
 ├── web/                 # React web application
 │   └── src/
-│       ├── components/  # UI components
-│       ├── hooks/       # Custom React hooks
+│       ├── components/  # UI components (forms, panels, etc.)
+│       ├── hooks/       # Custom React hooks (useLocalStorage)
+│       ├── types/       # Web-layer TypeScript interfaces
+│       ├── utils/       # Shared UI utilities (formatCurrency)
 │       └── App.tsx      # Main application
 └── README.md
 ```

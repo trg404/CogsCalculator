@@ -1,12 +1,18 @@
+/**
+ * CostBreakdownPanel — a read-only display panel that shows the per-piece
+ * COGS breakdown once a bisque piece is selected. It renders each cost
+ * line item (bisque, labor by role, kiln, glaze, overhead) and the total.
+ *
+ * When no piece is selected it shows a placeholder prompt.
+ */
 import { COGSResult } from '../types/pottery'
+import { formatCurrency } from '../utils/formatCurrency'
 
 interface Props {
+  /** Name of the currently selected bisque piece, or null if none selected */
   pieceName: string | null
+  /** Calculated COGS result from the core library, or null if no piece selected */
   result: COGSResult | null
-}
-
-function formatCurrency(value: number): string {
-  return `$${value.toFixed(2)}`
 }
 
 export default function CostBreakdownPanel({ pieceName, result }: Props) {

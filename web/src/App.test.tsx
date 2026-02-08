@@ -41,8 +41,10 @@ describe('Pottery Studio COGS Calculator', () => {
     await user.type(screen.getByLabelText('Piece Name'), 'Snowman')
     await user.type(screen.getByLabelText('Wholesale Cost'), '4.50')
 
-    // Select the piece
-    await user.selectOptions(screen.getByLabelText('Select Piece'), 'Snowman')
+    // Select the piece by its display text (option values are now ids, not names)
+    const select = screen.getByLabelText('Select Piece')
+    const option = screen.getByRole('option', { name: /Snowman/ })
+    await user.selectOptions(select, option)
 
     expect(screen.getByText(/Snowman - Cost Breakdown/)).toBeInTheDocument()
   })

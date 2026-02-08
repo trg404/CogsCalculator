@@ -1,23 +1,32 @@
+/**
+ * StudioSettingsForm — the main settings panel where the owner configures
+ * everything that affects COGS except staff roles and the bisque catalog
+ * (those have their own components).
+ *
+ * Sections:
+ *   1. Overhead Costs — fixed and variable cost categories with line items
+ *   2. Production Volume — pieces per month and glaze cost per piece
+ *   3. Kiln Settings — worker rate, firing time, crew size, and batch capacity
+ */
+import { sumOverheadItems } from '../../../src/pottery'
 import { StudioSettings, OverheadItem } from '../types/pottery'
+import { formatCurrency } from '../utils/formatCurrency'
 import OverheadCategorySection from './OverheadCategorySection'
 
 interface Props {
+  /** The current studio settings object */
   settings: StudioSettings
+  /** Called with the full updated settings object on any change */
   onChange: (settings: StudioSettings) => void
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
-}
-
 export default function StudioSettingsForm({ settings, onChange }: Props) {
+  /** Generic updater for top-level settings fields (piecesPerMonth, glazeCostPerPiece, etc.) */
   const updateField = <K extends keyof StudioSettings>(field: K, value: StudioSettings[K]) => {
     onChange({ ...settings, [field]: value })
   }
 
+  /** Updater for nested kiln settings fields */
   const updateKiln = <K extends keyof StudioSettings['kiln']>(
     field: K,
     value: StudioSettings['kiln'][K]
@@ -33,8 +42,8 @@ export default function StudioSettingsForm({ settings, onChange }: Props) {
     onChange({ ...settings, overhead: { ...settings.overhead, variableCosts } })
   }
 
-  const fixedTotal = settings.overhead.fixedCosts.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
-  const variableTotal = settings.overhead.variableCosts.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
+  const fixedTotal = sumOverheadItems(settings.overhead.fixedCosts)
+  const variableTotal = sumOverheadItems(settings.overhead.variableCosts)
   const monthlyTotal = fixedTotal + variableTotal
 
   return (

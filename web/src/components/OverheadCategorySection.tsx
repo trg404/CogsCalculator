@@ -1,21 +1,27 @@
+/**
+ * OverheadCategorySection — a reusable CRUD list for one category of
+ * overhead costs (either "Fixed Costs" or "Variable Costs"). Each item
+ * is a named expense with a dollar amount (e.g. "Rent" = $2000).
+ *
+ * Shows a running subtotal at the bottom using the core sumOverheadItems()
+ * function to stay consistent with how the COGS calculator totals overhead.
+ */
+import { sumOverheadItems } from '../../../src/pottery'
 import { OverheadItem } from '../types/pottery'
+import { formatCurrency } from '../utils/formatCurrency'
 import OverheadItemRow from './OverheadItemRow'
 
 interface Props {
+  /** Section heading (e.g. "Fixed Costs" or "Variable Costs") */
   title: string
+  /** The overhead line items in this category */
   items: OverheadItem[]
+  /** Called with the updated full array on any add, edit, or delete */
   onChange: (items: OverheadItem[]) => void
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount)
-}
-
 export default function OverheadCategorySection({ title, items, onChange }: Props) {
-  const subtotal = items.reduce((sum, item) => sum + Math.max(0, item.amount), 0)
+  const subtotal = sumOverheadItems(items)
 
   const handleItemChange = (updatedItem: OverheadItem) => {
     onChange(items.map((item) => (item.id === updatedItem.id ? updatedItem : item)))
