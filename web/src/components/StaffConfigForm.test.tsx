@@ -100,4 +100,89 @@ describe('StaffConfigForm', () => {
     render(<StaffConfigForm roles={roles} onChange={() => {}} />)
     expect(screen.getAllByRole('button', { name: '×' })).toHaveLength(2)
   })
+
+  it('calls onChange when minutes per customer is typed into', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.type(screen.getByLabelText('Minutes per Customer'), '5')
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall[0]).toHaveProperty('minutesPerCustomer')
+  })
+
+  it('calls onChange when customers at once is typed into', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.type(screen.getByLabelText('Customers at Once'), '2')
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall[0]).toHaveProperty('customersSimultaneous')
+  })
+
+  it('calls onChange when role name is typed into', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.type(screen.getByLabelText('Role Name'), ' Sr')
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall[0]).toHaveProperty('name')
+  })
+
+  it('renders empty inputs when values are zero', () => {
+    const zeroRole: StaffRole = {
+      id: '1',
+      name: 'Test',
+      hourlyRate: 0,
+      minutesPerCustomer: 0,
+      customersSimultaneous: 0,
+    }
+    render(<StaffConfigForm roles={[zeroRole]} onChange={() => {}} />)
+
+    // Zero values render as empty inputs (value={x || ''} -> '')
+    const hourlyInput = screen.getByLabelText('Hourly Rate ($)') as HTMLInputElement
+    const minutesInput = screen.getByLabelText('Minutes per Customer') as HTMLInputElement
+    const customersInput = screen.getByLabelText('Customers at Once') as HTMLInputElement
+    expect(hourlyInput.value).toBe('')
+    expect(minutesInput.value).toBe('')
+    expect(customersInput.value).toBe('')
+  })
+
+  it('falls back to 0 when hourly rate is cleared', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.clear(screen.getByLabelText('Hourly Rate ($)'))
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall[0]).toHaveProperty('hourlyRate', 0)
+  })
+
+  it('falls back to 0 when minutes per customer is cleared', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.clear(screen.getByLabelText('Minutes per Customer'))
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall[0]).toHaveProperty('minutesPerCustomer', 0)
+  })
+
+  it('falls back to 1 when customers at once is cleared', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<StaffConfigForm roles={[defaultRole]} onChange={onChange} />)
+
+    await user.clear(screen.getByLabelText('Customers at Once'))
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall[0]).toHaveProperty('customersSimultaneous', 1)
+  })
 })

@@ -36,4 +36,33 @@ describe('OverheadItemRow', () => {
     await user.click(screen.getByRole('button', { name: /delete/i }))
     expect(onDelete).toHaveBeenCalledWith('1')
   })
+
+  it('calls onChange with amount field when amount input is typed into', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<OverheadItemRow item={item} onChange={onChange} onDelete={() => {}} />)
+
+    const amountInput = screen.getByDisplayValue('2000')
+    await user.type(amountInput, '5')
+
+    // Verify onChange was called and the call includes an amount field
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall).toHaveProperty('amount')
+    expect(lastCall).toHaveProperty('id', '1')
+    expect(lastCall).toHaveProperty('name', 'Rent')
+  })
+
+  it('falls back to 0 when amount is cleared', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<OverheadItemRow item={item} onChange={onChange} onDelete={() => {}} />)
+
+    const amountInput = screen.getByDisplayValue('2000')
+    await user.clear(amountInput)
+
+    expect(onChange).toHaveBeenCalled()
+    const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0]
+    expect(lastCall).toHaveProperty('amount', 0)
+  })
 })
